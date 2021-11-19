@@ -54,6 +54,9 @@ const (
 	GuestbookPath = "guestbook"
 
 	ProjectName = "argo-project"
+
+	// cmp plugin sock file path
+	PluginSockFilePath = "/app/config/plugin"
 )
 
 const (
@@ -66,6 +69,7 @@ var (
 	deploymentNamespace string
 	name                string
 	KubeClientset       kubernetes.Interface
+	KubeConfig          *rest.Config
 	DynamicClientset    dynamic.Interface
 	AppClientset        appclientset.Interface
 	ArgoCDClientset     argocdclient.Client
@@ -150,6 +154,7 @@ func init() {
 	AppClientset = appclientset.NewForConfigOrDie(config)
 	KubeClientset = kubernetes.NewForConfigOrDie(config)
 	DynamicClientset = dynamic.NewForConfigOrDie(config)
+	KubeConfig = config
 
 	apiServerAddress = GetEnvWithDefault(argocdclient.EnvArgoCDServer, defaultApiServer)
 	adminUsername = GetEnvWithDefault(EnvAdminUsername, defaultAdminUsername)
@@ -564,6 +569,8 @@ func EnsureCleanState(t *testing.T) {
 		FailOnErr(Run("", "mkdir", "-p", TmpDir+"/app/config/gpg/source"))
 		FailOnErr(Run("", "mkdir", "-p", TmpDir+"/app/config/gpg/keys"))
 		FailOnErr(Run("", "chmod", "0700", TmpDir+"/app/config/gpg/keys"))
+		FailOnErr(Run("", "mkdir", "-p", TmpDir+PluginSockFilePath))
+		FailOnErr(Run("", "chmod", "0700", TmpDir+PluginSockFilePath))
 	}
 
 	// set-up tmp repo, must have unique name
