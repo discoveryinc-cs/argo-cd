@@ -89,6 +89,7 @@ func (s *Server) Get(ctx context.Context, q *settingspkg.SettingsQuery) (*settin
 		AppLabelKey:        appInstanceLabelKey,
 		ResourceOverrides:  overrides,
 		StatusBadgeEnabled: argoCDSettings.StatusBadgeEnabled,
+		StatusBadgeRootUrl: argoCDSettings.StatusBadgeRootUrl,
 		KustomizeOptions: &v1alpha1.KustomizeOptions{
 			BuildOptions: argoCDSettings.KustomizeBuildOptions,
 		},
@@ -97,8 +98,9 @@ func (s *Server) Get(ctx context.Context, q *settingspkg.SettingsQuery) (*settin
 			AnonymizeUsers: gaSettings.AnonymizeUsers,
 		},
 		Help: &settingspkg.Help{
-			ChatUrl:  help.ChatURL,
-			ChatText: help.ChatText,
+			ChatUrl:    help.ChatURL,
+			ChatText:   help.ChatText,
+			BinaryUrls: help.BinaryURLs,
 		},
 		Plugins:            plugins,
 		UserLoginsDisabled: userLoginsDisabled,
@@ -106,6 +108,7 @@ func (s *Server) Get(ctx context.Context, q *settingspkg.SettingsQuery) (*settin
 		UiCssURL:           argoCDSettings.UiCssURL,
 		PasswordPattern:    argoCDSettings.PasswordPattern,
 		TrackingMethod:     trackingMethod,
+		ExecEnabled:        argoCDSettings.ExecEnabled,
 	}
 
 	if sessionmgr.LoggedIn(ctx) || s.disableAuth {

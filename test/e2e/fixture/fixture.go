@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/argoproj/argo-cd/v2/common"
-	argocdclient "github.com/argoproj/argo-cd/v2/pkg/apiclient"
+	"github.com/argoproj/argo-cd/v2/pkg/apiclient"
 	sessionpkg "github.com/argoproj/argo-cd/v2/pkg/apiclient/session"
 	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	appclientset "github.com/argoproj/argo-cd/v2/pkg/client/clientset/versioned"
@@ -72,7 +72,7 @@ var (
 	KubeConfig          *rest.Config
 	DynamicClientset    dynamic.Interface
 	AppClientset        appclientset.Interface
-	ArgoCDClientset     argocdclient.Client
+	ArgoCDClientset     apiclient.Client
 	adminUsername       string
 	AdminPassword       string
 	apiServerAddress    string
@@ -156,14 +156,14 @@ func init() {
 	DynamicClientset = dynamic.NewForConfigOrDie(config)
 	KubeConfig = config
 
-	apiServerAddress = GetEnvWithDefault(argocdclient.EnvArgoCDServer, defaultApiServer)
+	apiServerAddress = GetEnvWithDefault(apiclient.EnvArgoCDServer, defaultApiServer)
 	adminUsername = GetEnvWithDefault(EnvAdminUsername, defaultAdminUsername)
 	AdminPassword = GetEnvWithDefault(EnvAdminPassword, defaultAdminPassword)
 
 	tlsTestResult, err := grpcutil.TestTLS(apiServerAddress)
 	CheckError(err)
 
-	ArgoCDClientset, err = argocdclient.NewClient(&argocdclient.ClientOptions{Insecure: true, ServerAddr: apiServerAddress, PlainText: !tlsTestResult.TLS})
+	ArgoCDClientset, err = apiclient.NewClient(&apiclient.ClientOptions{Insecure: true, ServerAddr: apiServerAddress, PlainText: !tlsTestResult.TLS})
 	CheckError(err)
 
 	plainText = !tlsTestResult.TLS
@@ -203,7 +203,7 @@ func loginAs(username, password string) {
 	CheckError(err)
 	token = sessionResponse.Token
 
-	ArgoCDClientset, err = argocdclient.NewClient(&argocdclient.ClientOptions{
+	ArgoCDClientset, err = apiclient.NewClient(&apiclient.ClientOptions{
 		Insecure:   true,
 		ServerAddr: apiServerAddress,
 		AuthToken:  token,
@@ -324,6 +324,15 @@ func updateGenericConfigMap(name string, updater func(cm *corev1.ConfigMap) erro
 	errors.CheckError(err)
 }
 
+func SetEnableManifestGeneration(val map[v1alpha1.ApplicationSourceType]bool) {
+	updateSettingConfigMap(func(cm *corev1.ConfigMap) error {
+		for k, v := range val {
+			cm.Data[fmt.Sprintf("%s.enable", strings.ToLower(string(k)))] = strconv.FormatBool(v)
+		}
+		return nil
+	})
+}
+
 func SetResourceOverrides(overrides map[string]v1alpha1.ResourceOverride) {
 	updateSettingConfigMap(func(cm *corev1.ConfigMap) error {
 		if len(overrides) > 0 {
@@ -358,7 +367,9 @@ func SetResourceOverridesSplitKeys(overrides map[string]v1alpha1.ResourceOverrid
 			if v.Actions != "" {
 				cm.Data[getResourceOverrideSplitKey(k, "actions")] = v.Actions
 			}
-			if len(v.IgnoreDifferences.JSONPointers) > 0 || len(v.IgnoreDifferences.JQPathExpressions) > 0 {
+			if len(v.IgnoreDifferences.JSONPointers) > 0 ||
+				len(v.IgnoreDifferences.JQPathExpressions) > 0 ||
+				len(v.IgnoreDifferences.ManagedFieldsManagers) > 0 {
 				yamlBytes, err := yaml.Marshal(v.IgnoreDifferences)
 				if err != nil {
 					return err
@@ -467,6 +478,13 @@ func SetProjectSpec(project string, spec v1alpha1.AppProjectSpec) {
 	errors.CheckError(err)
 }
 
+func SetParamInSettingConfigMap(key, value string) {
+	updateSettingConfigMap(func(cm *corev1.ConfigMap) error {
+		cm.Data[key] = value
+		return nil
+	})
+}
+
 func EnsureCleanState(t *testing.T) {
 	// In large scenarios, we can skip tests that already run
 	SkipIfAlreadyRun(t)
@@ -543,7 +561,9 @@ func EnsureCleanState(t *testing.T) {
 	FailOnErr(Run("", "mkdir", "-p", TmpDir))
 
 	// random id - unique across test runs
-	postFix := "-" + strings.ToLower(rand.RandString(5))
+	randString, err := rand.String(5)
+	CheckError(err)
+	postFix := "-" + strings.ToLower(randString)
 	id = t.Name() + postFix
 	name = DnsFriendly(t.Name(), "")
 	deploymentNamespace = DnsFriendly(fmt.Sprintf("argocd-e2e-%s", t.Name()), postFix)
