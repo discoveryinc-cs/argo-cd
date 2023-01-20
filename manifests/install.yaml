@@ -9619,6 +9619,7 @@ metadata:
 data:
   policy.csv: |
     g, CLOUD-MSC-PLATFORM-ENGINEERS, role:admin
+    g, *CLOUD-MSC-PLATFORM-ENGINEERS, role:admin
   policy.default: role:readonly
 ---
 apiVersion: v1
