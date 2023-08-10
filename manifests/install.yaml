@@ -10217,6 +10217,11 @@ spec:
             port: 8084
           initialDelaySeconds: 30
           periodSeconds: 5
+        resources:
+          limits:
+            memory: "1Gi"
+          requests:
+            memory: "500Mi"
         name: argocd-repo-server
         ports:
         - containerPort: 8081
@@ -10720,6 +10725,11 @@ spec:
             port: 8082
           initialDelaySeconds: 5
           periodSeconds: 10
+        resources:
+          limits:
+            memory: "1Gi"
+          requests:
+            memory: "500Mi"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
