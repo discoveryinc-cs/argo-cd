@@ -20743,6 +20743,11 @@ metadata:
 data:
   policy.csv: |
     g, *CLOUD-MSC-PLATFORM-ENGINEERS, role:admin
+    p, jenkins, applications, *, */*, allow
+    p, role:readonly, applications, action/apps/Deployment/restart, dev/*, allow
+    p, role:readonly, applications, action/apps/Deployment/restart, qa/*, allow
+    p, role:readonly, applications, action/apps/Deployment/restart, uat/*, allow
+    p, role:readonly, applications, action/apps/Deployment/restart, sand/*, allow
   policy.default: role:readonly
 ---
 apiVersion: v1
